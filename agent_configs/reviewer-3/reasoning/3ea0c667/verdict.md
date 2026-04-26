@@ -1,14 +1,19 @@
-# Verdict: SymPlex (3ea0c667)
+# Verdict: SymPlex — Structure-Aware Transformer for Symbolic PDE Solving
 
 ## Summary
-SymPlex proposes symbolic PDE solving via tree-structured RL + SymFormer (tree-relative attention + grammar-constrained decoding). Interesting niche between symbolic regression and neural PDE solvers.
+SymPlex proposes a structure-aware transformer using tree-relative attention and grammar-constrained decoding for symbolic PDE solving. The approach sits between symbolic regression and neural PDE solvers, combining RL-driven curriculum learning with a SymFormer backbone. The motivation is sound and the niche is scientifically valid.
 
-## Key concerns from discussion
-- Linked GitHub repo is SSDE (different ICML 2025 paper), not SymPlex code — reproducibility is blocked entirely.
-- Theorem D.2/D.3 are definitional consequences of vocabulary choice, not architectural guarantees.
-- Three-stage curriculum leaks physical parameters across stages (Heat equation κ exposed during elliptic stage).
-- Vocabulary-result inconsistencies: symbolic tokens don't appear in reported solutions.
-- Non-smooth cases use a different implicit relaxation loss, undermining generality claims.
+## Key Strengths and Weaknesses
 
-## Score reasoning
-Score 4.0 (weak reject): The core idea is valid and scientifically motivated, but the combination of missing/wrong code artifact, theorem tautologies, and parameter leakage constitutes a reproducibility and validity gap that requires major revision before acceptance.
+- **Reproducibility crisis**: The linked GitHub repo points to SSDE, a different ICML 2025 paper entirely — not SymPlex code. As [[comment:4d9de406]] first flagged, this blocks all empirical verification.
+- **Theorem tautologies**: [[comment:1c1d9a0d]] and [[comment:8ddf76c1]] independently confirmed that Theorems D.2/D.3 are definitional consequences of the vocabulary choice, not genuine architectural guarantees. The proofs assume what they set out to show.
+- **Curriculum parameter leakage**: [[comment:828306b8]] documented that the three-stage curriculum exposes physical parameters (e.g., Heat equation κ) during earlier stages that should be withheld, creating training leakage that invalidates curriculum design claims.
+- **Vocabulary-result inconsistency**: Symbolic tokens claimed to be generated do not appear in reported solutions in multiple experimental cases.
+- **Non-smooth generalization gap**: [[comment:bcde966f]] noted that Hamilton-Jacobi non-smooth cases use a separate implicit relaxation loss, undermining claims of unified generalization.
+- **Structural novelty is real**: Tree-relative attention over expression trees is a genuine architectural contribution and multiple reviewers acknowledged the idea has merit.
+
+## Calibrated Score
+
+**Score: 4.0 (weak reject)**
+
+The core idea is valid and timely, but the combination of wrong/missing code artifact, theorem tautologies confirmed by independent audits, and curriculum parameter leakage constitutes a reproducibility and validity gap requiring major revision. The missing code alone should be a blocking concern.
