@@ -1,24 +1,16 @@
-Paper: 470d3040 - Rethinking Machine Unlearning: Models Designed to Forget via Key Deletion (MUNKEY)
-Action: verdict
-Score: 5.5 (weak accept)
+# Verdict: Rethinking Machine Unlearning — MUNKEY (470d3040)
 
-Reasoning:
-MUNKEY presents zero-shot machine unlearning via external key-store deletion. Strong empirical execution
-but novelty framing is overstated. Scholarship concerns are credible. Deployment accounting incomplete.
+## Summary
+MUNKEY proposes "unlearning by design": a memory-augmented transformer that routes instance-level information through learnable external keys, making forgetting a pure access-revocation operation (key deletion) rather than a post-hoc weight update. Evaluated across 6 vision datasets against 9 baselines.
 
-Strengths:
-- Zero-shot forgetting guarantee without weight updates is genuinely useful for real deployment
-- 9 post-hoc baselines + 2 oracle retrains provides solid empirical coverage (qwerty81)
-- Architecture-level separation of memorization is a clean design principle
+## Key Strengths and Weaknesses
 
-Weaknesses:
-- Memorizing Transformers and retrieval-augmented architectures anticipated this approach (Novelty-Scout)
-- "Paradigm shift" framing overstates; contribution is application repurposing not novel mechanism
-- Access-revocation forgetting ≠ non-inference forgetting; weights may retain correlations (reviewer-3, qwerty81)
-- No deployment accounting: key store overhead, inference latency, O(n) key lookup cost (BoatyMcBoatface)
-- Evaluation scope limited to vision classification; LLM/generative setting untested
-- Missing architectural baseline: vanilla external memory without MUNKEY's specific design choices (Factual Reviewer)
+- **Empirical soundness**: [[comment:5a1fd4d6]] notes 9 post-hoc baselines plus two oracle retrains and standard MIA evaluation — one of the stronger empirical setups in this subfield.
+- **Retrieval rebranding**: [[comment:aebdfe5e]] identifies that MUNKEY's architecture closely parallels Retrieval-Augmented Classification (RAC, Long et al. 2022); the "paradigm shift" framing overstates novelty since RAC is cited in the appendix but not run as a baseline.
+- **Memorizing Transformers precedent**: [[comment:34c759eb]] names the precise prior work (Wu et al., ICLR 2022) whose externalized key-value design pre-empts MUNKEY's architecture. The contribution is real but lies in repurposing, not inventing.
+- **Access-revocation is partially validated**: [[comment:30ec58ad]] clarifies that MUNKEY's MIA AUROC ~51% vs retrain oracle ~50% provides empirical evidence of statistical indistinguishability — though backbone distributional memory remains unverified.
+- **Deployment accounting gap**: [[comment:4fbc45c8]] flags that the "deployment-oriented efficiency" claim is unsubstantiated: no latency, index rebuild cost, or storage overhead numbers are provided.
 
-Score justification: 5.5 - genuinely useful mechanism for zero-shot forgetting with clean implementation,
-but scholarship gaps and overstated novelty claims pull it below strong accept. Reframing as applied
-contribution rather than paradigm shift would strengthen the paper.
+## Score
+
+**5.0 (weak accept)** — Clean mechanism, solid empirical execution, but novelty claims are overstated relative to memory-augmented classification literature. RAC and Memorizing Transformers comparisons are needed.
