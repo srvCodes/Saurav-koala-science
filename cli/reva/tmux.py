@@ -80,6 +80,40 @@ _load_agent_env() {
 # still work.
 _LOAD_AGENT_API_KEY_FUNC = _LOAD_AGENT_ENV_FUNC
 
+# Sleeps until the API rate-limit window resets after a 429.
+# Reads the most recent resetsAt epoch from agent.log and waits + 30s margin.
+_RATE_LIMIT_BACKOFF_FUNC = """\
+_rate_limit_backoff() {
+    [ -f agent.log ] || return 0
+    if ! tail -c 16384 agent.log 2>/dev/null | grep -q '"api_error_status":429\\|"status":"rejected"'; then
+        return 0
+    fi
+    local reset_at
+    reset_at=$(tail -c 32768 agent.log 2>/dev/null | python3 -c "
+import sys, re
+last = 0
+for line in sys.stdin:
+    m = re.search(r'\\\"resetsAt\\\":(\\d+)', line)
+    if m:
+        try:
+            v = int(m.group(1))
+            if v > last:
+                last = v
+        except Exception:
+            pass
+print(last)
+" 2>/dev/null)
+    [ -z "$reset_at" ] && return 0
+    [ "$reset_at" = "0" ] && return 0
+    local now=$(date +%s)
+    local sleep_for=$((reset_at - now + 30))
+    if [ "$sleep_for" -gt 60 ] && [ "$sleep_for" -lt 21600 ]; then
+        echo "[reva] rate-limited; sleeping ${sleep_for}s until reset (epoch=$reset_at)"
+        sleep "$sleep_for"
+    fi
+}
+"""
+
 
 def _run(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(
@@ -142,6 +176,14 @@ def _make_run_block(
             extract = _EXTRACT_SESSION_ID_FROM_LOG
         return f"""\
     _load_agent_env
+    MAX_RESUMES=${{REVA_MAX_RESUMES:-3}}
+    RESUME_COUNT=$(cat .reva_resume_count 2>/dev/null || echo 0)
+    if [ "$RESUME_COUNT" -ge "$MAX_RESUMES" ]; then
+        echo "[reva] $RESUME_COUNT consecutive resumes (max=$MAX_RESUMES); forcing fresh session"
+        rm -f last_session_id
+        echo 0 > .reva_resume_count
+        RESUME_COUNT=0
+    fi
     OFFSET=$(wc -c < agent.log 2>/dev/null || echo 0)
     if [ -f last_session_id ] && [ -s last_session_id ]; then
         SESSION_ID=$(cat last_session_id)
@@ -150,10 +192,14 @@ def _make_run_block(
         if [ $RESUME_RC -ne 0 ]; then
             echo "[reva] resume failed (rc=$RESUME_RC), starting fresh session..."
             rm -f last_session_id
+            echo 0 > .reva_resume_count
             _timeout "{timeout_expr}" {backend_command}
+        else
+            echo $((RESUME_COUNT + 1)) > .reva_resume_count
         fi
     else
         _timeout "{timeout_expr}" {backend_command}
+        echo 0 > .reva_resume_count
     fi
 {extract}"""
     else:
@@ -197,6 +243,7 @@ def build_launch_script(
 set -o pipefail
 {_BASH_TIMEOUT_FUNC}
 {_LOAD_AGENT_API_KEY_FUNC}
+{_RATE_LIMIT_BACKOFF_FUNC}
 TIMEOUT={timeout_secs}
 SESSION_TIMEOUT={session_timeout}
 START=$(date +%s)
@@ -212,6 +259,7 @@ while true; do
     EXIT_CODE=$?
     echo "[reva] agent exited ($EXIT_CODE), restarting in 5s..."
     sleep 5
+    _rate_limit_backoff
 done
 """
     else:
@@ -221,6 +269,7 @@ done
 set -o pipefail
 {_BASH_TIMEOUT_FUNC}
 {_LOAD_AGENT_API_KEY_FUNC}
+{_RATE_LIMIT_BACKOFF_FUNC}
 SESSION_TIMEOUT={session_timeout}
 
 while true; do
@@ -228,6 +277,7 @@ while true; do
     EXIT_CODE=$?
     echo "[reva] agent exited ($EXIT_CODE), restarting in 5s..."
     sleep 5
+    _rate_limit_backoff
 done
 """
 
