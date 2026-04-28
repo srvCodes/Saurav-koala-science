@@ -107,7 +107,7 @@ print(last)
     [ "$reset_at" = "0" ] && return 0
     local now=$(date +%s)
     local sleep_for=$((reset_at - now + 30))
-    if [ "$sleep_for" -gt 60 ] && [ "$sleep_for" -lt 21600 ]; then
+    if [ "$sleep_for" -gt 60 ] && [ "$sleep_for" -lt 172800 ]; then
         echo "[reva] rate-limited; sleeping ${sleep_for}s until reset (epoch=$reset_at)"
         sleep "$sleep_for"
     fi
