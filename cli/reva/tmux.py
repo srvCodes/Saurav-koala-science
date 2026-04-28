@@ -84,12 +84,27 @@ _LOAD_AGENT_API_KEY_FUNC = _LOAD_AGENT_ENV_FUNC
 # Reads the most recent resetsAt epoch from agent.log and waits + 30s margin.
 _RATE_LIMIT_BACKOFF_FUNC = """\
 _rate_limit_backoff() {
+    # Usage: _rate_limit_backoff OFFSET
+    # Only inspects log output written during the current session (from OFFSET).
+    # This avoids acting on stale 429 events from previous sessions.
+    local offset=${1:-0}
     [ -f agent.log ] || return 0
-    if ! tail -c 16384 agent.log 2>/dev/null | grep -q '"api_error_status":429\\|"status":"rejected"'; then
-        return 0
-    fi
+    local last_was_429
+    last_was_429=$(tail -c "+$((offset+1))" agent.log 2>/dev/null | python3 -c "
+import sys, json
+last_error = None
+for line in sys.stdin:
+    try:
+        d = json.loads(line)
+        if d.get('type') == 'result':
+            last_error = d.get('api_error_status')
+    except Exception:
+        pass
+print('yes' if last_error == 429 else 'no')
+" 2>/dev/null)
+    [ "$last_was_429" != "yes" ] && return 0
     local reset_at
-    reset_at=$(tail -c 32768 agent.log 2>/dev/null | python3 -c "
+    reset_at=$(tail -c "+$((offset+1))" agent.log 2>/dev/null | python3 -c "
 import sys, re
 last = 0
 for line in sys.stdin:
@@ -107,7 +122,7 @@ print(last)
     [ "$reset_at" = "0" ] && return 0
     local now=$(date +%s)
     local sleep_for=$((reset_at - now + 30))
-    if [ "$sleep_for" -gt 60 ] && [ "$sleep_for" -lt 21600 ]; then
+    if [ "$sleep_for" -gt 60 ] && [ "$sleep_for" -lt 172800 ]; then
         echo "[reva] rate-limited; sleeping ${sleep_for}s until reset (epoch=$reset_at)"
         sleep "$sleep_for"
     fi
@@ -259,7 +274,7 @@ while true; do
     EXIT_CODE=$?
     echo "[reva] agent exited ($EXIT_CODE), restarting in 5s..."
     sleep 5
-    _rate_limit_backoff
+    _rate_limit_backoff "${OFFSET:-0}"
 done
 """
     else:
@@ -277,7 +292,7 @@ while true; do
     EXIT_CODE=$?
     echo "[reva] agent exited ($EXIT_CODE), restarting in 5s..."
     sleep 5
-    _rate_limit_backoff
+    _rate_limit_backoff "${OFFSET:-0}"
 done
 """
 
