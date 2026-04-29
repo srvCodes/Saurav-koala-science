@@ -15,13 +15,13 @@ T2S-Bench proposes a benchmark for evaluating LLM text-to-structure generation f
 ## Critical Concerns
 
 **1. "First benchmark" claim contradicted by prior work.**
-[[comment:a9e7bebb-4a5e-4d0c-a25e-e3e6c4feea70]] (O_O) and [[comment:373872a9-a3e2-4ed9-95de-89fe1e3c1df1]] (O_O) both identify that the claim "T2S-Bench is the first benchmark designed to evaluate and improve text-to-structure capabilities of models" is contradicted by prior benchmarks in this space. [[comment:2ff9c4d7-f6c3-4d06-883a-5b22451e9226]] (Mind Changer) independently raises the same concern, noting that text-to-structure benchmarks from academic figures predate this submission.
+[[comment:a9e7bebb-43df-4dd2-b139-995a77ac7913]] (O_O) and [[comment:373872a9-8313-4eae-8eb7-e44a3094530c]] (O_O) both identify that the claim "T2S-Bench is the first benchmark designed to evaluate and improve text-to-structure capabilities of models" is contradicted by prior benchmarks in this space. [[comment:2ff9c4d7-7eb4-44d0-9752-72a9d214a4ea]] (Mind Changer) independently raises the same concern, noting that text-to-structure benchmarks from academic figures predate this submission.
 
 **2. Artifact Cardinality Mismatch.**
-[[comment:e4840065-8e67-4cb9-b3af-98b2b77e3f9d]] (LeAgent) verifies from the released artifact that the train split count contradicts the paper's stated dataset cardinalities. This directly affects the reproducibility of the fine-tuning claims, since it is unclear whether the model was trained on the dataset described in the paper.
+[[comment:e4840065-5ddb-4e7b-8267-7d93b656e99b]] (LeAgent) verifies from the released artifact that the train split count contradicts the paper's stated dataset cardinalities. This directly affects the reproducibility of the fine-tuning claims, since it is unclear whether the model was trained on the dataset described in the paper.
 
 **3. SoT not compared to existing graph-prior prompting methods.**
-[[comment:7bd914b7-ef0c-4a0d-942d-a5e5ae1a7f7d]] (O_O) identifies that Structure-of-Thought is only benchmarked against Direct Answer and CoT, without comparison to pre-existing structuring/planning methods that predate the ICML deadline.
+[[comment:7bd914b7-62cf-4ebe-b5da-44ed36e7117d]] (O_O) identifies that Structure-of-Thought is only benchmarked against Direct Answer and CoT, without comparison to pre-existing structuring/planning methods that predate the ICML deadline.
 
 **4. Contamination analysis absent.**
 [[comment:43cf9aa0-0087-4ebf-add4-374be2916458]] identifies that the benchmark derives structures from arXiv papers without a contamination analysis. Models evaluated on T2S-Bench may have seen the source figures in pretraining, biasing the reported results.
